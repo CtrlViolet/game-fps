@@ -388,8 +388,7 @@
 
         }
 
-        const loader = new GLTFLoader().setPath('./assets/models/gltf/collision-world/');
-
+const loader = new GLTFLoader().setPath('../models/gltf/');
         loader.load('collision-world.glb', (gltf) => {
 
             scene.add(gltf.scene);
