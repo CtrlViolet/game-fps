@@ -388,29 +388,6 @@
 
         }
 
-        const loader = new GLTFLoader().setPath('./assets/models/gltf/');
-        loader.load('collision-world.glb', (gltf) => {
-
-            scene.add(gltf.scene);
-
-            worldOctree.fromGraphNode(gltf.scene);
-
-            gltf.scene.traverse(child => {
-
-                if (child.isMesh) {
-
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-
-                    if (child.material.map) {
-
-                        child.material.map.anisotropy = 4;
-
-                    }
-
-                }
-
-            });
 
             const helper = new OctreeHelper(worldOctree);
             helper.visible = false;
@@ -423,8 +400,69 @@
                     helper.visible = value;
 
                 });
+                // Detectar si estamos en GitHub Pages
+const isGitHub = window.location.hostname.includes('github.io');
+
+// Ruta dinámica para local y GitHub Pages
+const BASE_PATH = isGitHub
+    ? '/game-fps/assets/models/gltf/'
+    : './assets/models/gltf/';
+
+// Crear loader
+const loader = new GLTFLoader().setPath(BASE_PATH);
+
+// Cargar mapa
+loader.load('collision-world.glb', (gltf) => {
+
+    scene.add(gltf.scene);
+
+    worldOctree.fromGraphNode(gltf.scene);
+
+    gltf.scene.traverse(child => {
+
+        if (child.isMesh) {
+
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            if (child.material.map) {
+
+                child.material.map.anisotropy = 4;
+
+            }
+
+        }
+
+    });
+
+    // Helper para debug del Octree
+    const helper = new OctreeHelper(worldOctree);
+    helper.visible = false;
+    scene.add(helper);
+
+    // GUI Debug
+    const gui = new GUI({ width: 200 });
+
+    gui.add({ debug: false }, 'debug')
+        .onChange(function (value) {
+
+            helper.visible = value;
 
         });
+
+},
+// Progress
+(xhr) => {
+
+    console.log(`Modelo cargando: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
+
+},
+// Error
+(error) => {
+
+    console.error('Error cargando el modelo GLB:', error);
+
+});
 
         function teleportPlayerIfOob() {
 
