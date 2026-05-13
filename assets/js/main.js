@@ -59,28 +59,29 @@
 
         const GRAVITY = 30;
 
-        const NUM_SPHERES = 100;
-        const SPHERE_RADIUS = 0.2;
+        const NUM_PROJECTILES = 100;
+        const PROJECTILE_SIZE = 0.4;
+        const PROJECTILE_RADIUS = PROJECTILE_SIZE / 2;
 
         const STEPS_PER_FRAME = 5;
 
-        const sphereGeometry = new THREE.IcosahedronGeometry(SPHERE_RADIUS, 5);
-        const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0xdede8d });
+        const projectileGeometry = new THREE.BoxGeometry(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
+        const projectileMaterial = new THREE.MeshLambertMaterial({ color: 0xff6b6b });
 
-        const spheres = [];
-        let sphereIdx = 0;
+        const projectiles = [];
+        let projectileIdx = 0;
 
-        for (let i = 0; i < NUM_SPHERES; i++) {
+        for (let i = 0; i < NUM_PROJECTILES; i++) {
 
-            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            sphere.castShadow = true;
-            sphere.receiveShadow = true;
+            const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+            projectile.castShadow = true;
+            projectile.receiveShadow = true;
 
-            scene.add(sphere);
+            scene.add(projectile);
 
-            spheres.push({
-                mesh: sphere,
-                collider: new THREE.Sphere(new THREE.Vector3(0, - 100, 0), SPHERE_RADIUS),
+            projectiles.push({
+                mesh: projectile,
+                collider: new THREE.Sphere(new THREE.Vector3(0, -100, 0), PROJECTILE_RADIUS),
                 velocity: new THREE.Vector3()
             });
 
@@ -124,7 +125,7 @@
 
         document.addEventListener('mouseup', () => {
 
-            if (document.pointerLockElement !== null) throwBall();
+            if (document.pointerLockElement !== null) throwProjectile();
 
         });
 
@@ -150,22 +151,22 @@
 
         }
 
-        function throwBall() {
+        function throwProjectile() {
 
-            const sphere = spheres[sphereIdx];
+            const projectile = projectiles[projectileIdx];
 
             camera.getWorldDirection(playerDirection);
 
-            sphere.collider.center.copy(playerCollider.end).addScaledVector(playerDirection, playerCollider.radius * 1.5);
+            projectile.collider.center.copy(playerCollider.end).addScaledVector(playerDirection, playerCollider.radius * 1.5);
 
-            // throw the ball with more force if we hold the button longer, and if we move forward
+            // throw with more force if we hold the button longer, and if we move forward
 
             const impulse = 15 + 30 * (1 - Math.exp((mouseTime - performance.now()) * 0.001));
 
-            sphere.velocity.copy(playerDirection).multiplyScalar(impulse);
-            sphere.velocity.addScaledVector(playerVelocity, 2);
+            projectile.velocity.copy(playerDirection).multiplyScalar(impulse);
+            projectile.velocity.addScaledVector(playerVelocity, 2);
 
-            sphereIdx = (sphereIdx + 1) % spheres.length;
+            projectileIdx = (projectileIdx + 1) % projectiles.length;
 
         }
 
@@ -221,32 +222,32 @@
 
         }
 
-        function playerSphereCollision(sphere) {
+        function playerProjectileCollision(projectile) {
 
             const center = vector1.addVectors(playerCollider.start, playerCollider.end).multiplyScalar(0.5);
 
-            const sphere_center = sphere.collider.center;
+            const projectile_center = projectile.collider.center;
 
-            const r = playerCollider.radius + sphere.collider.radius;
+            const r = playerCollider.radius + projectile.collider.radius;
             const r2 = r * r;
 
             // approximation: player = 3 spheres
 
             for (const point of [playerCollider.start, playerCollider.end, center]) {
 
-                const d2 = point.distanceToSquared(sphere_center);
+                const d2 = point.distanceToSquared(projectile_center);
 
                 if (d2 < r2) {
 
-                    const normal = vector1.subVectors(point, sphere_center).normalize();
+                    const normal = vector1.subVectors(point, projectile_center).normalize();
                     const v1 = vector2.copy(normal).multiplyScalar(normal.dot(playerVelocity));
-                    const v2 = vector3.copy(normal).multiplyScalar(normal.dot(sphere.velocity));
+                    const v2 = vector3.copy(normal).multiplyScalar(normal.dot(projectile.velocity));
 
                     playerVelocity.add(v2).sub(v1);
-                    sphere.velocity.add(v1).sub(v2);
+                    projectile.velocity.add(v1).sub(v2);
 
                     const d = (r - Math.sqrt(d2)) / 2;
-                    sphere_center.addScaledVector(normal, - d);
+                    projectile_center.addScaledVector(normal, - d);
 
                 }
 
@@ -254,33 +255,33 @@
 
         }
 
-        function spheresCollisions() {
+        function projectilesCollisions() {
 
-            for (let i = 0, length = spheres.length; i < length; i++) {
+            for (let i = 0, length = projectiles.length; i < length; i++) {
 
-                const s1 = spheres[i];
+                const p1 = projectiles[i];
 
                 for (let j = i + 1; j < length; j++) {
 
-                    const s2 = spheres[j];
+                    const p2 = projectiles[j];
 
-                    const d2 = s1.collider.center.distanceToSquared(s2.collider.center);
-                    const r = s1.collider.radius + s2.collider.radius;
+                    const d2 = p1.collider.center.distanceToSquared(p2.collider.center);
+                    const r = p1.collider.radius + p2.collider.radius;
                     const r2 = r * r;
 
                     if (d2 < r2) {
 
-                        const normal = vector1.subVectors(s1.collider.center, s2.collider.center).normalize();
-                        const v1 = vector2.copy(normal).multiplyScalar(normal.dot(s1.velocity));
-                        const v2 = vector3.copy(normal).multiplyScalar(normal.dot(s2.velocity));
+                        const normal = vector1.subVectors(p1.collider.center, p2.collider.center).normalize();
+                        const v1 = vector2.copy(normal).multiplyScalar(normal.dot(p1.velocity));
+                        const v2 = vector3.copy(normal).multiplyScalar(normal.dot(p2.velocity));
 
-                        s1.velocity.add(v2).sub(v1);
-                        s2.velocity.add(v1).sub(v2);
+                        p1.velocity.add(v2).sub(v1);
+                        p2.velocity.add(v1).sub(v2);
 
                         const d = (r - Math.sqrt(d2)) / 2;
 
-                        s1.collider.center.addScaledVector(normal, d);
-                        s2.collider.center.addScaledVector(normal, - d);
+                        p1.collider.center.addScaledVector(normal, d);
+                        p2.collider.center.addScaledVector(normal, - d);
 
                     }
 
@@ -290,37 +291,37 @@
 
         }
 
-        function updateSpheres(deltaTime) {
+        function updateProjectiles(deltaTime) {
 
-            spheres.forEach(sphere => {
+            projectiles.forEach(projectile => {
 
-                sphere.collider.center.addScaledVector(sphere.velocity, deltaTime);
+                projectile.collider.center.addScaledVector(projectile.velocity, deltaTime);
 
-                const result = worldOctree.sphereIntersect(sphere.collider);
+                const result = worldOctree.sphereIntersect(projectile.collider);
 
                 if (result) {
 
-                    sphere.velocity.addScaledVector(result.normal, - result.normal.dot(sphere.velocity) * 1.5);
-                    sphere.collider.center.add(result.normal.multiplyScalar(result.depth));
+                    projectile.velocity.addScaledVector(result.normal, - result.normal.dot(projectile.velocity) * 1.5);
+                    projectile.collider.center.add(result.normal.multiplyScalar(result.depth));
 
                 } else {
 
-                    sphere.velocity.y -= GRAVITY * deltaTime;
+                    projectile.velocity.y -= GRAVITY * deltaTime;
 
                 }
 
                 const damping = Math.exp(- 1.5 * deltaTime) - 1;
-                sphere.velocity.addScaledVector(sphere.velocity, damping);
+                projectile.velocity.addScaledVector(projectile.velocity, damping);
 
-                playerSphereCollision(sphere);
+                playerProjectileCollision(projectile);
 
             });
 
-            spheresCollisions();
+            projectilesCollisions();
 
-            for (const sphere of spheres) {
+            for (const projectile of projectiles) {
 
-                sphere.mesh.position.copy(sphere.collider.center);
+                projectile.mesh.position.copy(projectile.collider.center);
 
             }
 
@@ -494,7 +495,7 @@ loader.load('collision-world.glb', (gltf) => {
 
                 updatePlayer(deltaTime);
 
-                updateSpheres(deltaTime);
+                updateProjectiles(deltaTime);
 
                 teleportPlayerIfOob();
 
